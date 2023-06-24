@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <b-navbar shadow="true" centered>
+    <b-navbar :shadow="true">
         <template #start>
             <b-navbar-item tag="router-link" :to="{ path: '/' }">
               Home
@@ -19,5 +19,10 @@
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+nav {
+  padding-left: 15% !important;
+  padding-right: 15% !important;
 }
 </style>
