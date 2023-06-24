@@ -29,7 +29,21 @@
     >
       <div class="card question-paper-card">
         <div class="card-content">
-          {{ questionPaper.name }}
+          <div class="columns is-vcentered">
+            <div class="column is-four-fifths">
+              {{ questionPaper.name }}
+            </div>
+            <div class="column has-text-right">
+              <b-button
+                @click.prevent="() => deleteQuestionPaper(questionPaper)"
+                icon-left="trash-can"
+              ></b-button>
+            </div>
+          </div>
+
+          <div class="columns">
+            <div></div>
+          </div>
         </div>
       </div>
     </router-link>
@@ -48,7 +62,11 @@
 <script>
 import { Component, Vue } from "vue-property-decorator";
 import { readCsvFiles, removeExtension } from "@/utils/csv_utils";
-import { getAllQuestionPapers, insertQuestionPapers } from "@/utils/db_utils";
+import {
+  getAllQuestionPapers,
+  insertQuestionPapers,
+  deleteQuestionPaperFromDb,
+} from "@/utils/db_utils";
 
 @Component
 export default class Home extends Vue {
@@ -84,10 +102,18 @@ export default class Home extends Vue {
     quesitionPapers = quesitionPapers.map((quesitionPaper) => {
       return {
         name: removeExtension(quesitionPaper.fileName),
+        questionPaperContents: quesitionPaper.objects,
       };
     });
 
     insertQuestionPapers(quesitionPapers);
+    this.fetchQuestionPapers();
+
+    event.target.value = null;
+  }
+
+  deleteQuestionPaper(questionPaper) {
+    deleteQuestionPaperFromDb(questionPaper);
     this.fetchQuestionPapers();
   }
 }

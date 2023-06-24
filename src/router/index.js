@@ -1,4 +1,5 @@
 import HomeView from '@/views/Home.vue'
+import QuestionPaper from '@/views/QuestionPaper.vue'
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 
@@ -9,6 +10,12 @@ const routes = [
     path: '/',
     name: 'home',
     component: HomeView
+  },
+  {
+    path: '/question-paper/:questionPaperId',
+    name: 'question-paper',
+    component: QuestionPaper,
+    props: true
   }
 ]
 
