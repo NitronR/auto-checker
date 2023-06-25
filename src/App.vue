@@ -1,16 +1,18 @@
 <template>
   <div id="app">
-    <b-navbar :shadow="true">
-        <template #start>
-            <b-navbar-item tag="router-link" :to="{ path: '/' }">
-              Home
-            </b-navbar-item>
-            <b-navbar-item>
-              About
-            </b-navbar-item>
-        </template>
+    <b-navbar :shadow="true" class="main-navbar">
+      <template #start>
+        <b-navbar-item tag="router-link" :to="{ path: '/' }">
+          <img src="@/assets/auto-checker-logo.png" />
+        </b-navbar-item>
+        <b-navbar-item tag="router-link" :to="{ path: '/' }">
+          Home
+        </b-navbar-item>
+      </template>
     </b-navbar>
-    <router-view/>
+    <div class="main-container container">
+      <router-view />
+    </div>
   </div>
 </template>
 
@@ -21,8 +23,13 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-nav {
+nav.main-navbar {
   padding-left: 15% !important;
   padding-right: 15% !important;
+}
+
+.main-container.container {
+  max-width: 70% !important;
+  margin-top: 2rem;
 }
 </style>

@@ -1,3 +1,4 @@
+import AnswerSheet from '@/views/AnswerSheet.vue'
 import HomeView from '@/views/Home.vue'
 import QuestionPaper from '@/views/QuestionPaper.vue'
 import Vue from 'vue'
@@ -15,6 +16,12 @@ const routes = [
     path: '/question-paper/:questionPaperId',
     name: 'question-paper',
     component: QuestionPaper,
+    props: true
+  },
+  {
+    path: '/answer-sheet/:answerSheetId',
+    name: 'answer-sheet',
+    component: AnswerSheet,
     props: true
   }
 ]

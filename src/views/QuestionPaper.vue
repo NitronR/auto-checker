@@ -1,5 +1,5 @@
 <template>
-  <div class="question-paper-page container">
+  <div class="question-paper-page">
     <div class="columns">
       <div class="column is-four-fifths">
         <h1 class="title is-3">
@@ -21,21 +21,32 @@
       </div>
     </div>
 
-    <div
-      class="card question-answer-card"
-      v-for="questionPaperContent in questionPaperContents"
-      :key="questionPaperContent.id"
-    >
-      <div class="card-content">
-        <div>
-          <div><b>Question: </b> {{ questionPaperContent.question }}</div>
-          <div><b>Max Score: </b> {{ questionPaperContent.maxScore }}</div>
-          <div>
-            <b>Expected Answer: </b> {{ questionPaperContent.expectedAnswer }}
+    <b-tabs expanded>
+      <b-tab-item label="Question Paper">
+        <div
+          class="card question-answer-card"
+          v-for="questionPaperContent in questionPaperContents"
+          :key="questionPaperContent.id"
+        >
+          <div class="card-content">
+            <div>
+              <div><b>Question: </b> {{ questionPaperContent.question }}</div>
+              <div><b>Max Score: </b> {{ questionPaperContent.maxScore }}</div>
+              <div>
+                <b>Expected Answer: </b>
+                {{ questionPaperContent.expectedAnswer }}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </b-tab-item>
+      <b-tab-item label="Answer Sheets">
+        <AnswerSheets
+          :answerSheets="answerSheets"
+          @evaluateClicked="openAnswerSheetInput"
+        />
+      </b-tab-item>
+    </b-tabs>
   </div>
 </template>
 
@@ -44,24 +55,29 @@ import { Component, Vue } from "vue-property-decorator";
 import { readCsvFiles, removeExtension } from "@/utils/csv_utils";
 import {
   getAllQuestionPaperContents,
-  insertAnswerSheet,
+  insertAnswerSheets,
   getQuestionPaper,
+  getAllAnswerSheets,
 } from "@/utils/db_utils";
+import AnswerSheets from "@/views/AnswerSheets.vue";
 
-@Component
+@Component({
+  components: { AnswerSheets },
+})
 export default class Home extends Vue {
   ANSWER_SHEET_CSV_TO_JSON_MAPPER = {
     Question: "question",
     Answer: "answer",
-    Score: "score",
   };
 
   questionPaperContents = [];
   questionPaper = {};
+  answerSheets = [];
 
   mounted() {
     this.questionPaperId = this.$route.params.questionPaperId;
     this.fetchQuestionPaperContents();
+    this.fetchAnswerSheets();
   }
 
   fetchQuestionPaperContents() {
@@ -71,30 +87,50 @@ export default class Home extends Vue {
     );
   }
 
+  fetchAnswerSheets() {
+    this.answerSheets = getAllAnswerSheets(this.questionPaperId);
+  }
+
   openAnswerSheetInput() {
     this.$refs.answerSheetInput.click();
   }
 
   async handleAnswerSheetFilesSelect(event) {
-    // TODO
     const selectedFiles = event.target.files;
 
     // You can now access the selected files and perform further operations
     let answerSheets = await readCsvFiles(
       selectedFiles,
-      this.QUESTION_PAPER_CSV_TO_JSON_MAPPER
+      this.ANSWER_SHEET_CSV_TO_JSON_MAPPER
     );
 
-    answerSheets = answerSheets.map((quesitionPaper) => {
+    answerSheets = answerSheets.map((answerSheet) => {
       return {
-        name: removeExtension(quesitionPaper.fileName),
+        name: removeExtension(answerSheet.fileName),
+        answerSheetContents: answerSheet.objects,
       };
     });
 
-    insertAnswerSheet(answerSheets);
-    this.fetchQuestionPapers();
+    answerSheets = this.evaluateAnswerSheets(answerSheets);
+
+    insertAnswerSheets(this.questionPaperId, answerSheets);
+    this.fetchQuestionPaperContents();
+    this.fetchAnswerSheets();
 
     event.target.value = null;
+  }
+
+  evaluateAnswerSheets(answerSheets) {
+    return answerSheets.map((answerSheet) => ({
+      ...answerSheet,
+      answerSheetContents: answerSheet.answerSheetContents.map(
+        (answerSheetContent) => ({
+          ...answerSheetContent,
+          score: 1,
+          analysis: "Analysis",
+        })
+      ),
+    }));
   }
 }
 </script>
@@ -102,10 +138,6 @@ export default class Home extends Vue {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss" scoped>
 .question-paper-page {
-  &.container {
-    max-width: 70%;
-    margin-top: 2rem;
-  }
   .add-button-column {
     text-align: right;
   }

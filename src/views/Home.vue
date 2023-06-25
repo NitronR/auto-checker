@@ -1,5 +1,5 @@
 <template>
-  <div class="home-page container">
+  <div class="home-page">
     <div class="columns">
       <div class="column is-four-fifths">
         <h1 class="title is-3">Question papers</h1>
@@ -122,10 +122,6 @@ export default class Home extends Vue {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss" scoped>
 .home-page {
-  &.container {
-    max-width: 70%;
-    margin-top: 2rem;
-  }
   .add-button-column {
     text-align: right;
   }

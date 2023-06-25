@@ -47,6 +47,10 @@ function queryAll(tableName, query) {
     })
 }
 
+function query(tableName, query) {
+    return queryAll(tableName, query)[0]
+}
+
 export function deleteQuestionPaperFromDb(questionPaper) {
     AUTO_CHECKER_DB.deleteRows(QUESTION_PAPER_TABLE, { ID: questionPaper.ID });
     AUTO_CHECKER_DB.deleteRows(QUESTION_PAPER_CONTENTS_TABLE, { questionPaperId: questionPaper.id })
@@ -54,14 +58,61 @@ export function deleteQuestionPaperFromDb(questionPaper) {
 }
 
 export function getAllQuestionPaperContents(questionPaperId) {
-    return queryAll(QUESTION_PAPER_CONTENTS_TABLE, { question_paper_id: questionPaperId })
+    return queryAll(QUESTION_PAPER_CONTENTS_TABLE, { query: { questionPaperId } });
 }
 
 export function getQuestionPaper(questionPaperId) {
-    return queryAll(QUESTION_PAPER_TABLE, { ID: questionPaperId })[0]
+    return queryAll(QUESTION_PAPER_TABLE, { query: { ID: questionPaperId } })[0]
 }
 
-export function insertAnswerSheet(answerSheet) {
-    // TODO
-    AUTO_CHECKER_DB.insert(answerSheet)
+export function insertAnswerSheets(questionPaperId, answerSheets) {
+    answerSheets.forEach(answerSheet => {
+        let answerSheetId = AUTO_CHECKER_DB.insert(ANSWER_SHEET_TABLE, {
+            ...answerSheet,
+            questionPaperId
+        })
+
+        answerSheet.answerSheetContents.forEach(answerSheetContent => {
+            AUTO_CHECKER_DB.insert(ANSWER_SHEET_CONTENTS_TABLE, {
+                answerSheetId,
+                ...answerSheetContent
+            })
+        })
+    });
+
+    AUTO_CHECKER_DB.commit();
+}
+
+export function getAllAnswerSheets(questionPaperId) {
+    let answerSheets = queryAll(ANSWER_SHEET_TABLE, { query: { questionPaperId } });
+    let maxScore = getAllQuestionPaperContents(questionPaperId)
+        .map(questionPaperContent => parseInt(questionPaperContent.maxScore))
+        .reduce((previousVal, currVal) => previousVal + currVal);
+
+    return answerSheets.map(answerSheet => ({
+        ...answerSheet,
+        totalScore: getAnswerSheet(answerSheet.id).answerSheetContents
+            .map(answerSheetContent => answerSheetContent.score)
+            .reduce((previousVal, currVal) => previousVal + currVal),
+        maxScore
+    }));
+}
+
+export function getAnswerSheet(answerSheetId) {
+    let answerSheet = query(ANSWER_SHEET_TABLE, { query: { ID: answerSheetId } });
+    let questionPaperContents = getAllQuestionPaperContents(answerSheet.questionPaperId);
+    let questionToContentMap = {};
+
+    questionPaperContents.forEach(questionPaperContent => {
+        questionToContentMap[questionPaperContent.question] = questionPaperContent
+    })
+
+    let answerSheetContents = queryAll(ANSWER_SHEET_CONTENTS_TABLE, { query: { answerSheetId } });
+
+    answerSheet.answerSheetContents = answerSheetContents.map(answerSheetContent => ({
+        ...answerSheetContent,
+        expectedAnswer: questionToContentMap[answerSheetContent.question].expectedAnswer,
+        maxScore: questionToContentMap[answerSheetContent.question].maxScore
+    }))
+    return answerSheet;
 }
