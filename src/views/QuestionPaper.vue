@@ -1,5 +1,7 @@
 <template>
   <div class="question-paper-page">
+    <b-loading :is-full-page="true" v-model="isLoading"></b-loading>
+
     <div class="columns">
       <div class="column is-four-fifths">
         <h1 class="title is-3">
@@ -21,7 +23,7 @@
       </div>
     </div>
 
-    <b-tabs expanded>
+    <b-tabs expanded v-model="activeTab">
       <b-tab-item label="Question Paper">
         <div
           class="card question-answer-card"
@@ -60,6 +62,8 @@ import {
   getAllAnswerSheets,
 } from "@/utils/db_utils";
 import AnswerSheets from "@/views/AnswerSheets.vue";
+import { evaluateAnswer } from "@/utils/ai_utils";
+import { ToastProgrammatic as Toast } from "buefy";
 
 @Component({
   components: { AnswerSheets },
@@ -73,6 +77,8 @@ export default class Home extends Vue {
   questionPaperContents = [];
   questionPaper = {};
   answerSheets = [];
+  isLoading = false;
+  activeTab = 0;
 
   mounted() {
     this.questionPaperId = this.$route.params.questionPaperId;
@@ -111,26 +117,63 @@ export default class Home extends Vue {
       };
     });
 
-    answerSheets = this.evaluateAnswerSheets(answerSheets);
+    this.isLoading = true;
 
-    insertAnswerSheets(this.questionPaperId, answerSheets);
-    this.fetchQuestionPaperContents();
-    this.fetchAnswerSheets();
+    this.evaluateAnswerSheets(answerSheets)
+      .then((answerSheets) => {
+        insertAnswerSheets(this.questionPaperId, answerSheets);
+        this.fetchQuestionPaperContents();
+        this.fetchAnswerSheets();
+
+        this.activeTab = 1;
+        Toast.open("Evaluation done!");
+        this.isLoading = false;
+      })
+      .catch((error) => {
+        this.activeTab = 0;
+        Toast.open("Evaluation failed!");
+        this.isLoading = false;
+
+        console.error("error", error);
+      });
 
     event.target.value = null;
   }
 
   evaluateAnswerSheets(answerSheets) {
-    return answerSheets.map((answerSheet) => ({
-      ...answerSheet,
-      answerSheetContents: answerSheet.answerSheetContents.map(
-        (answerSheetContent) => ({
-          ...answerSheetContent,
-          score: 1,
-          analysis: "Analysis",
-        })
-      ),
-    }));
+    let questionPaperContents = getAllQuestionPaperContents(
+      this.questionPaperId
+    );
+    let questionToContentMap = {};
+
+    questionPaperContents.forEach((questionPaperContent) => {
+      questionToContentMap[questionPaperContent.question] =
+        questionPaperContent;
+    });
+
+    let answerSheetPromises = answerSheets.map((answerSheet) => {
+      let evaluationPromises = answerSheet.answerSheetContents.map(
+        (answerSheetContent) => {
+          return evaluateAnswer(
+            answerSheetContent.question,
+            answerSheetContent.answer,
+            questionToContentMap[answerSheetContent.question]?.expectedAnswer,
+            questionToContentMap[answerSheetContent.question]?.maxScore
+          ).then((evaluationResult) => ({
+            ...answerSheetContent,
+            score: evaluationResult.score,
+            analysis: evaluationResult.analysis,
+          }));
+        }
+      );
+
+      return Promise.all(evaluationPromises).then((answerSheetContents) => ({
+        ...answerSheet,
+        answerSheetContents: answerSheetContents,
+      }));
+    });
+
+    return Promise.all(answerSheetPromises);
   }
 }
 </script>

@@ -23,7 +23,7 @@
           <br />
 
           <h2 class="title is-4">Analysis</h2>
-          <p>{{ props.row.analysis }}</p>
+          <div v-html="props.row.analysis"></div>
           <br />
         </div>
       </template>
